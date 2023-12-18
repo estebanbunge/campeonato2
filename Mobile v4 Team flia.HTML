@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        form {
+            display: inline-block;
+            text-align: left;
+            max-width: 100%;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #333;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        #teamSelection {
+            display: none;
+            margin-top: 20px;
+        }
+
+        #teamResult {
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 600px) {
+            form, table {
+                width: 100%;
+            }
+        }
+    </style>
+    <script>
+        // Sample data structure to store players
+        const players = [];
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('subscribeButton').addEventListener('click', addPlayer);
+            document.getElementById('selectTeam').addEventListener('click', selectTeam);
+        });
+
+        function addPlayer() {
+            const name = document.getElementById('name').value;
+            const age = parseInt(document.getElementById('age').value, 10);
+            const membership = document.getElementById('membership').checked ? 'Yes' : 'No';
+
+            players.push({ name, age, membership, selected: false });
+
+            displayPlayers();
+        }
+
+        function displayPlayers() {
+            const tableBody = document.getElementById('playersTableBody');
+            tableBody.innerHTML = '';
+
+            players.forEach((player, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = player.name;
+                row.insertCell(1).textContent = player.age;
+                row.insertCell(2).textContent = player.membership;
+                const checkboxCell = row.insertCell(3);
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = player.selected;
+                checkbox.addEventListener('change', () => togglePlayerSelection(index));
+                checkboxCell.appendChild(checkbox);
+                const editCell = row.insertCell(4);
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.addEventListener('click', () => editPlayer(index));
+                editCell.appendChild(editButton);
+                const deleteCell = row.insertCell(5);
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => deletePlayer(index));
+                deleteCell.appendChild(deleteButton);
+            });
+
+            if (players.length >= 5) {
+                document.getElementById('teamSelection').style.display = 'block';
+            }
+        }
+
+        function togglePlayerSelection(index) {
+            players[index].selected = !players[index].selected;
+            displayTeamResult();
+        }
+
+        function editPlayer(index) {
+            const name = prompt('Enter the new name:', players[index].name);
+            const age = parseInt(prompt('Enter the new age:', players[index].age), 10);
+            const membership = prompt('Is the player a member? Enter "Yes" or "No":');
+
+            if (name && !isNaN(age) && (membership === 'Yes' || membership === 'No')) {
+                players[index] = { name, age, membership, selected: players[index].selected };
+                displayPlayers();
+                displayTeamResult();
+            } else {
+                alert('Invalid input. Please enter valid name, age, and membership.');
+            }
+        }
+
+        function deletePlayer(index) {
+            players.splice(index, 1);
+            displayPlayers();
+            displayTeamResult();
+        }
+
+        function selectTeam() {
+            displayTeamResult();
+        }
+
+        function displayTeamResult() {
+            const selectedTeam = players.filter(player => player.selected);
+
+            const teamResult = document.getElementById('teamResult');
+            teamResult.innerHTML = '';
+
+            if (selectedTeam.length === 5) {
+                const result = checkTeamValidity(selectedTeam);
+                teamResult.innerHTML = result.text;
+                teamResult.style.color = result.isValid ? 'green' : 'red';
+            } else {
+                teamResult.textContent = 'Please select 5 players for the team.';
+                teamResult.style.color = 'red';
+            }
+        }
+
+        function checkTeamValidity(team) {
+            const ages = team.map(player => player.age);
+            const totalAge = ages.reduce((sum, age) => sum + age, 0);
+
+            const membersCount = team.filter(player => player.membership === 'Yes').length;
+
+            // Check conditions
+            const conditionA = totalAge >= 175;
+            const conditionB = team.some(player => player.age < 16) && team.some(player => player.age >= 40);
+            const conditionC = team.filter(player => player.age >= 40).length >= 2;
+            const conditionD = team.filter(player => player.age < 16).length >= 2;
+
+            // Check if at least two selected players are members
+            if (membersCount < 2) {
+                return {
+                    isValid: false,
+                    text: '<span style="color: red; font-size: 1.2em;">INVALID: At least two selected players must be members.</span>'
+                };
+            }
+
+            let explanation = '<span style="color: green; font-size: 1.2em;">VALID: Team complies with the following conditions:</span><br>';
+
+            if (conditionA) {
+                explanation += '- <span style="color: green;">Sum of all ages is greater or equal to 175.</span><br>';
+            } else {
+                explanation += '- <span style="color: red;">Missing condition: Sum of all ages should be greater or equal to 175.</span><br>';
+            }
+
+            if (conditionB) {
+                explanation += '- <span style="color: green;">At least one player below 16 and at least one player greater or equal than 40.</span><br>';
+            } else {
+                explanation += '- <span style="color: red;">Missing condition: At least one player below 16 and at least one player greater or equal than 40.</span><br>';
+            }
+
+            if (conditionC) {
+                explanation += '- <span style="color: green;">At least two players greater or equal than 40.</span><br>';
+            } else {
+                explanation += '- <span style="color: red;">Missing condition: At least two players greater or equal than 40.</span><br>';
+            }
+
+            if (conditionD) {
+                explanation += '- <span style="color: green;">At least two players less than 16.</span><br>';
+            } else {
+                explanation += '- <span style="color: red;">Missing condition: At least two players less than 16.</span><br>';
+            }
+
+            return {
+                isValid: conditionA && conditionB && conditionC && conditionD,
+                text: explanation
+            };
+        }
+    </script>
+</head>
+<body>
+    <h2>Player Subscription and Team Selection</h2>
+
+    <form>
+        <label for="name">Name:</label>
+        <input type="text" id="name" required><br>
+
+        <label for="age">Age:</label>
+        <input type="number" id="age" required><br>
+
+        <label for="membership">Membership:</label>
+        <input type="checkbox" id="membership"><br>
+
+        <button type="button" id="subscribeButton">Subscribe Player</button>
+    </form>
+
+    <table id="playersTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Age</th>
+                <th>Membership</th>
+                <th>Select</th>
+                <th>Edit</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody id="playersTableBody"></tbody>
+    </table>
+
+    <div id="teamSelection">
+        <h3>Select Team of 5 Players</h3>
+        <button type="button" id="selectTeam">Select Team</button>
+        <p id="teamResult"></p>
+    </div>
+</body>
+</html>
+
